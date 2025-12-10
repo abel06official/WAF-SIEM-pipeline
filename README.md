@@ -15,7 +15,7 @@ The critical component of this project is the **Log Pipeline**. Instead of revie
 * **Defense**: Nginx Reverse Proxy + ModSecurity (OWASP Core Rule Set).
 * **Monitoring**: Wazuh SIEM (Manager & Agent).
 * **Flow**: `Attacker -> WAF (Port 8080) -> [Logs to SIEM] -> Victim App (Port 80)`
-
+![architecture](images/screenshot1.png)
 ---
 
 ## Infrastructure Setup
@@ -24,13 +24,11 @@ The entire lab is containerized using Docker Compose for portability and isolati
 
 **1. Container Status**
 I orchestrated the environment to ensure the WAF sits directly in front of the application network.
-![Infrastructure Status](screenshots/01-infrastructure.png)
-*Figure 1: Docker Compose showing the WAF and DVWA containers active.*
+![Infrastructure Status](images/screenshot2.png)
 
 **2. Configuring the Victim**
 To validate the WAF's effectiveness, I disabled the application's internal defenses (Security Level: Low), making the WAF the only line of defense.
-![DVWA Configuration](screenshots/02-dvwa-setup.png)
-*Figure 2: DVWA Security set to "Low" to simulate a legacy vulnerable app.*
+![DVWA Configuration](images/screenshot3.png)
 
 ---
 
@@ -41,22 +39,20 @@ I validated the WAF configuration by launching two common OWASP Top 10 attacks.
 ### Test 1: SQL Injection (SQLi)
 **Attack Vector:** I simulated an external attacker attempting to bypass authentication and dump the database using a boolean-based payload:
 `' OR 1=1 --`
-
+![SQLi Block](images/screenshot4.png)
 **Result: Intercepted**
 The WAF inspected the HTTP Request Body (Layer 7), identified the SQL pattern matching **OWASP Rule 942100**, and severed the connection immediately.
 
-![SQLi Block](screenshots/03-attack-blocked.png)
-*Figure 3: Nginx returning a 403 Forbidden error, preventing the SQL injection from reaching the database.*
+![SQLi Block](images/screenshot5.png)
 
 ### Test 2: Cross-Site Scripting (XSS)
 **Attack Vector:** I attempted to inject a malicious script into the application to test for Reflected XSS:
-`<script>alert('Wazuh')</script>`
-
+`<script>alert('You are Hacked')</script>`
+![XSS Block](images/screenshot6.png)
 **Result: Intercepted**
 The WAF detected the `<script>` tags and JavaScript keywords in the input field, matching **OWASP Rule 941100** (XSS Attacks), and blocked the request.
 
-![XSS Block](screenshots/03b-xss-blocked.png)
-*Figure 4: The WAF successfully blocking the execution of arbitrary JavaScript.*
+![XSS Block](images/screenshot7.png)
 
 ---
 
@@ -67,19 +63,16 @@ A WAF block is useless if the SOC team doesn't know about it. I configured the W
 **1. Threat Detection (Dashboard)**
 Wazuh successfully ingested the log, decoded the Nginx error format, and triggered a **Level 7 Security Alert**.
 
-![Wazuh Dashboard](screenshots/04-wazuh-dashboard.png)
-*Figure 5: Wazuh Security Events dashboard showing the "ModSecurity rejected a query" alert.*
+![Wazuh Dashboard](images/screenshot8.png)
 
 **2. Forensic Deep Dive**
 Drilling down into the alert JSON reveals the exact payload used by the attacker, allowing for proper incident classification.
 
 **SQLi Log Evidence:**
-![SQLi JSON Analysis](screenshots/05-forensic-log.png)
-*Figure 6: Detailed log analysis showing the malicious SQL payload.*
+![SQLi JSON Analysis](images/screenshot9.png)
 
 **XSS Log Evidence:**
-![XSS JSON Analysis](screenshots/05b-xss-log.png)
-*Figure 7: Wazuh capturing the XSS script attempt in the request parameters.*
+![XSS JSON Analysis](images/screenshot10.png)
 
 ---
 
