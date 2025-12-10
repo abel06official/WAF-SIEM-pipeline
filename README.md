@@ -15,7 +15,9 @@ The critical component of this project is the **Log Pipeline**. Instead of revie
 * **Defense**: Nginx Reverse Proxy + ModSecurity (OWASP Core Rule Set).
 * **Monitoring**: Wazuh SIEM (Manager & Agent).
 * **Flow**: `Attacker -> WAF (Port 8080) -> [Logs to SIEM] -> Victim App (Port 80)`
+  
 ![architecture](images/screenshot1.png)
+
 ---
 
 ## Infrastructure Setup
@@ -24,10 +26,12 @@ The entire lab is containerized using Docker Compose for portability and isolati
 
 **1. Container Status**
 I orchestrated the environment to ensure the WAF sits directly in front of the application network.
+
 ![Infrastructure Status](images/screenshot2.png)
 
 **2. Configuring the Victim**
 To validate the WAF's effectiveness, I disabled the application's internal defenses (Security Level: Low), making the WAF the only line of defense.
+
 ![DVWA Configuration](images/screenshot3.png)
 
 ---
@@ -39,7 +43,9 @@ I validated the WAF configuration by launching two common OWASP Top 10 attacks.
 ### Test 1: SQL Injection (SQLi)
 **Attack Vector:** I simulated an external attacker attempting to bypass authentication and dump the database using a boolean-based payload:
 `' OR 1=1 --`
+
 ![SQLi Block](images/screenshot4.png)
+
 **Result: Intercepted**
 The WAF inspected the HTTP Request Body (Layer 7), identified the SQL pattern matching **OWASP Rule 942100**, and severed the connection immediately.
 
@@ -48,7 +54,9 @@ The WAF inspected the HTTP Request Body (Layer 7), identified the SQL pattern ma
 ### Test 2: Cross-Site Scripting (XSS)
 **Attack Vector:** I attempted to inject a malicious script into the application to test for Reflected XSS:
 `<script>alert('You are Hacked')</script>`
+
 ![XSS Block](images/screenshot6.png)
+
 **Result: Intercepted**
 The WAF detected the `<script>` tags and JavaScript keywords in the input field, matching **OWASP Rule 941100** (XSS Attacks), and blocked the request.
 
@@ -69,9 +77,11 @@ Wazuh successfully ingested the log, decoded the Nginx error format, and trigger
 Drilling down into the alert JSON reveals the exact payload used by the attacker, allowing for proper incident classification.
 
 **SQLi Log Evidence:**
+
 ![SQLi JSON Analysis](images/screenshot9.png)
 
 **XSS Log Evidence:**
+
 ![XSS JSON Analysis](images/screenshot10.png)
 
 ---
@@ -114,5 +124,5 @@ The lab proved that while signature-based detection (OWASP CRS) is effective aga
 ## Future Scope
 To evolve this project from a "Lab Environment" to a "Production-Ready Architecture," the following enhancements are planned:
 
-* ** Active Response:** Configure Wazuh to automatically trigger a firewall ban (via `iptables`) on the host server for any IP address that triggers more than 5 WAF alerts in 1 minute.
-* ** Automated Alerting:** Set up a Wazuh integration with **Slack** to send real-time notifications for High-Severity (Level 10+) WAF blocks.
+* **Active Response:** Configure Wazuh to automatically trigger a firewall ban (via `iptables`) on the host server for any IP address that triggers more than 5 WAF alerts in 1 minute.
+* **Automated Alerting:** Set up a Wazuh integration with **Slack** to send real-time notifications for High-Severity (Level 10+) WAF blocks.
