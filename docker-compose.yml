@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  # 1. The Vulnerable Victim (DVWA)
+  dvwa:
+    image: vulnerables/web-dvwa
+    restart: always
+    environment:
+      - SETUP_DB=true
+    expose:
+      - "80"
+
+  # 2. The WAF (Nginx + ModSecurity + OWASP CRS)
+  waf:
+    image: owasp/modsecurity-crs:nginx
+    ports:
+      - "8080:8080"
+    environment:
+      - PROXY=1
+      - BACKEND=http://dvwa:80
+      - PARANOIA=1
+      - ANOMALY_INBOUND=5
+      - ANOMALY_OUTBOUND=4
+    volumes:
+      - ./logs:/var/log/modsec/
+    depends_on:
+      - dvwa
